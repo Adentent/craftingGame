@@ -14,12 +14,3 @@ class Const:
     for root, dirs, files in walk(recipesDir):
         for file in files:
             recipesFiles.append(join(root, file))
-
-    # Events
-    eventGetInventory = 0
-    eventQuit = 1
-    eventTreeButtonDown = 2
-    eventTreeButtonRelease = 3
-    eventMineButtonDown = 4
-    eventMineButtonRelease = 5
-    eventGetRecipeStack = 6

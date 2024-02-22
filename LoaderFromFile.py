@@ -1,14 +1,13 @@
 from chardet import detect
 
+from Communications import ItemStack, RecipeStack, attributes
 from Const import Const
-from ItemStack import ItemStack
 from LogOutput import logOutput
-from RecipeStack import RecipeStack
 
 
 def getFileEncoding(filepath):
-    with open(filepath, 'rb') as f:
-        encoding = detect(f.read())['encoding']
+    with open(filepath, "rb") as f:
+        encoding = detect(f.read())["encoding"]
         if encoding in ["ISO-8859-1", "ASCII"]:
             return "GB2312"
         if encoding == "EUC-TW":
@@ -57,6 +56,10 @@ class Loader:
 
     def returnValue(self):
         return itemStack, recipeStack
+
+    def writeIntoCommunication(self):
+        attributes.recipeStack = recipeStack
+        attributes.itemStack = itemStack
 
 
 itemStack = ItemStack()
