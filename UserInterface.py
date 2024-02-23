@@ -1,14 +1,37 @@
 from time import ctime, time
-from tkinter import END, Button, Label, Text, Tk
-from tkinter.font import Font
+from tkinter import END, LEFT, SOLID, TOP, Button, Frame, Label, PhotoImage, Text, Tk
+
+from pip import main as pipInstall
 
 from Communications import *
 from LogOutput import logOutput
 from MainLoop import Loop
 
+# from tkinter.messagebox import showerror
+
+
+try:
+    from pyglet import font
+except ImportError:
+    logOutput("缺失pyglet, 正在安装")
+    pipInstall(["install", "pyglet"])
+    from pyglet import font
+
 
 class UserInterfaceGenerator:  # It is not a interface, but it is a user interface. (cold joke)
     def __init__(self, looper: Loop):
+        if not font.have_font("MiSans") or not font.have_font("Exo"):
+            # showerror(
+            #     "致命",
+            #     "无法找到字体文件。\n请自行以管理员身份运行LoadFonts.bat批处理文件。",
+            # )
+            # 自动加载assets/font的字体文件
+            font.add_directory("assets/fonts")
+            font.load("MiSans Medium")
+            font.load("Exo")
+            # return
+        self.mouseX: int = 0
+        self.mouseY: int = 0
         self.recipeStack = self.returnRecipeStack()
         self.looper = looper
 
@@ -17,8 +40,9 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
 
         self.generateWidgets()
         self.buttonBind()
+        self.tagInitiation()
         self.root.after(10, self.looper.eventWaiting, self.root)
-        self.root.after(100, self.clockUpdate)
+        self.root.after(100, self.DynWidgetsUpdates)
         self.root.mainloop()
 
         logOutput("UI界面终止")
@@ -28,21 +52,35 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         self.textShowInfo.bind("<Button-1>", lambda f: "break")
         self.textShowInfo.delete(1.0, END)
         self.showInfo(
-            "Tips:\n按'Q'来获取一些橡树木头...\n按'W'来挖矿...\n按H以显示此Tips",
+            "Tips:\n按'Q'来获取一些橡树木头...\n按'W'来挖矿...\n按'H'以显示此Tips",
         )
         self.textShowInfo.pack(fill="both", expand=True)
+
+        self.buttonFrame = Frame(self.root)
         self.buttonShowInventory = Button(
-            self.root, text="查看背包", command=self.showInventory
+            self.buttonFrame, text="查看背包", command=self.showInventory
         )
-        self.buttonShowInventory.pack()
-        self.buttonCraft = Button(self.root, text="合成", command=self.showCraft)
-        self.buttonCraft.pack()
-        self.buttonShowInventory = Button(self.root, text="帮助", command=self.showTips)
-        self.buttonShowInventory.pack()
+        self.buttonCraft = Button(self.buttonFrame, text="合成", command=self.showCraft)
+        self.buttonShowTips = Button(
+            self.buttonFrame, text="帮助", command=self.showTips
+        )
+        self.buttonShowInventory.pack(side=LEFT)
+        self.buttonCraft.pack(side=LEFT)
+        self.buttonShowTips.pack(side=LEFT)
+        self.buttonFrame.pack()
+
         self.clock = Label(self.root, text="")
         self.clock.pack()
+        self.tooltip = Label(
+            self.root,
+            text="Tooltip",
+            background="light grey",
+            bd=1,
+            relief=SOLID,
+        )
 
     def buttonBind(self):
+        # self.root.bind("<Motion>", self.returnMousePosition)
         self.root.bind("<KeyPress-q>", self.qDown)
         self.root.bind("<KeyRelease-q>", self.qRelease)
         self.root.bind("<KeyPress-w>", self.wDown)
@@ -95,7 +133,6 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
 
     def qRelease(self, _):
         if not event.treeButtonDown[0]:
-            # logOutput(str(event.treeButtonDown))
             return
 
         event.treeButtonRelease = [True, time()]
@@ -113,7 +150,6 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
 
     def wRelease(self, _):
         if not event.mineButtonDown[0]:
-            # logOutput(str(event.mineButtonDown))
             return
 
         event.mineButtonRelease = [True, time()]
@@ -129,10 +165,14 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         self.textShowInfo.tag_bind("back", "<Button-1>", lambda _: self.showCraft())
         self.showInfo(f"<-返回", "back")
 
-    def clockUpdate(self):
+    def DynWidgetsUpdates(self):
         self.clock["text"] = ctime()
         self.root.update()
-        self.root.after(100, self.clockUpdate)
+        self.root.after(100, self.DynWidgetsUpdates)
+
+    # def returnMousePosition(self, e):
+    #     self.mouseX = e.x
+    #     self.mouseY = e.y
 
     def showInfo(self, text: str, tag: str = ""):
         if text == "\n":
@@ -140,14 +180,12 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
             return
         lines = text.split("\n")
         existing_lines = self.textShowInfo.get("1.0", END).count("\n")
-        print(existing_lines)
         for j in range(len(lines)):
             line = lines[j]
             if tag == "":
                 self.textShowInfo.insert(END, line + "\n")
             else:
                 self.textShowInfo.insert(END, line + "\n", tag)
-            print(line)
             for i in range(len(line)):
                 if "\u4e00" <= line[i] <= "\u9fff":  # 判断是否为中文字符
                     self.textShowInfo.tag_configure(
@@ -165,3 +203,46 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
                         f"{j+existing_lines}.{i}",
                         f"{j+existing_lines}.{i+1}",
                     )
+        self.item_specifer()
+
+    # BUG: 为什么什么都是铬？？？
+    def add_tag_to_text(self, specifer: str, tag_name: str):
+        start = 1.0
+        while True:
+            start = self.textShowInfo.search(specifer, start, END)
+            if not start:
+                break
+            end = f"{start}+{len(specifer)}c"
+            self.textShowInfo.tag_add(tag_name, start, end)
+            start = end
+
+    def item_specifer(self):
+        items = attributes.itemStack.returnAllItems()
+        for i in items:
+            if i not in self.textShowInfo.get(1.0, END):
+                continue
+            self.add_tag_to_text(i, f"item_{i}")
+
+    def tagInitiation(self):
+        items = attributes.itemStack.returnAllItems()
+        for i in items:
+            self.textShowInfo.tag_configure(f"item_{i}", background="light grey")
+            self.textShowInfo.tag_bind(
+                f"item_{i}", "<Enter>", lambda e: self.enterItemTag(e, i)
+            )
+            self.textShowInfo.tag_bind(f"item_{i}", "<Leave>", self.leaveItemTag)
+
+    def enterItemTag(self, e, name: str):
+        global image
+        image = PhotoImage(file=f"assets/resources/{name}.png")
+        self.tooltip.configure(
+            image=image,
+            text=name,
+            compound=TOP,
+            anchor="sw",
+            font=("MiSans Normal", 10),
+        )
+        self.tooltip.place(x=e.x, y=e.y)
+
+    def leaveItemTag(self, _):
+        self.tooltip.place_forget()

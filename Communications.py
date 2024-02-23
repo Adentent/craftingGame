@@ -1,3 +1,6 @@
+from typing import List, Tuple
+
+
 class Item:
     def __init__(self, name: str, number: int):
         self.name = name
@@ -52,7 +55,7 @@ class RecipeStack:
 
 class ItemStack:
     def __init__(self):
-        self.stack = []
+        self.stack: List[Item] = []
 
     def addItem(self, name: str):
         item = Item(name, len(self.stack) + 1)
@@ -78,6 +81,9 @@ class ItemStack:
                 if j.name == i:
                     res.append(j)
         return res
+
+    def returnAllItems(self) -> Tuple[str, ...]:
+        return tuple(i.name for i in self.stack)
 
     def logFormat(self):
         return ",".join([i.name + "(%d)" % i.number for i in self.stack])
