@@ -7,9 +7,6 @@ from Communications import *
 from LogOutput import logOutput
 from MainLoop import Loop
 
-# from tkinter.messagebox import showerror
-
-
 try:
     from pyglet import font
 except ImportError:
@@ -21,18 +18,11 @@ except ImportError:
 class UserInterfaceGenerator:  # It is not a interface, but it is a user interface. (cold joke)
     def __init__(self, looper: Loop):
         if not font.have_font("MiSans") or not font.have_font("Exo"):
-            # showerror(
-            #     "致命",
-            #     "无法找到字体文件。\n请自行以管理员身份运行LoadFonts.bat批处理文件。",
-            # )
-            # 自动加载assets/font的字体文件
             font.add_directory("assets/fonts")
             font.load("MiSans Medium")
             font.load("Exo")
-            # return
         self.mouseX: int = 0
         self.mouseY: int = 0
-        self.recipeStack = self.returnRecipeStack()
         self.looper = looper
 
         self.root = Tk()
@@ -60,7 +50,9 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         self.buttonShowInventory = Button(
             self.buttonFrame, text="查看背包", command=self.showInventory
         )
-        self.buttonCraft = Button(self.buttonFrame, text="合成", command=self.showCraft)
+        self.buttonCraft = Button(
+            self.buttonFrame, text="合成", command=self.showRecipes
+        )
         self.buttonShowTips = Button(
             self.buttonFrame, text="帮助", command=self.showTips
         )
@@ -80,7 +72,6 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         )
 
     def buttonBind(self):
-        # self.root.bind("<Motion>", self.returnMousePosition)
         self.root.bind("<KeyPress-q>", self.qDown)
         self.root.bind("<KeyRelease-q>", self.qRelease)
         self.root.bind("<KeyPress-w>", self.wDown)
@@ -89,32 +80,24 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         self.root.bind("<Key-h>", self.showTips)
         self.root.focus_set()
 
-    def returnRecipeStack(self):
-        res = attributes.recipeStack
-        return res
-
-    def returnInventory(self):
-        res = attributes.inventory
-        return res
-
     def showInventory(self, _=None):
-        inventory = self.returnInventory()
         self.textShowInfo.delete(1.0, END)
-        self.showInfo("背包: " + inventory.formatOutput())
+        self.showInfo("背包: " + attributes.inventory.formatOutput())
         self.root.update()
 
-    def showCraft(self):
-        recipeStackRecipes = self.recipeStack.returnRecipe()
+    # BUG: 表面上显示了两个合成表，其实只有一个！！
+    def showRecipes(self):
+        recipeStackRecipes = attributes.recipeStack.returnRecipe()
         self.textShowInfo.delete(1.0, END)
         for i in recipeStackRecipes:
             for j in i.output:
                 self.textShowInfo.tag_configure(
                     "link" + j.name, foreground="blue", underline=True
                 )
-                self.showInfo(j.name, "link" + j.name)
                 self.textShowInfo.tag_bind(
                     "link" + j.name, "<Button-1>", lambda _: self.showRecipe(i)
                 )
+                self.showInfo(j.name, "link" + j.name)
         self.root.update()
 
     def showTips(self, _=None):
@@ -162,17 +145,38 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
             f"{', '.join([i.name for i in recipe.input])}通过{recipe.mid.name}来合成{', '.join([i.name for i in recipe.output])}",
         )
         self.textShowInfo.tag_config("back", foreground="blue", underline=True)
-        self.textShowInfo.tag_bind("back", "<Button-1>", lambda _: self.showCraft())
-        self.showInfo(f"<-返回", "back")
+        self.textShowInfo.tag_bind("back", "<Button-1>", lambda _: self.showRecipes())
+        self.textShowInfo.tag_configure(
+            "craft" + ",".join([i.name for i in recipe.output]),
+            foreground="blue",
+            underline=True,
+        )
+        self.textShowInfo.tag_bind(
+            "craft" + ",".join([i.name for i in recipe.output]),
+            "<Button-1>",
+            lambda _: self.doRecipe(recipe),
+        )
+        self.showInfo("合成", "craft" + ",".join([i.name for i in recipe.output]))
+        self.showInfo("<-返回", "back")
+
+    def doRecipe(self, recipe: Recipe):
+        inventoryCpy = attributes.inventory
+        for ipt in recipe.input:
+            if not inventoryCpy.loseItem(ipt, 1):
+                self.textShowInfo.delete(1.0, END)
+                self.showInfo(f"合成失败! 缺失{ipt.name}!")
+                self.showInfo("<-返回", "back")
+                return
+        for ipt in recipe.input:
+            attributes.inventory.loseItem(ipt, 1)
+        for opt in recipe.output:
+            attributes.inventory.getItem(opt, 1)
+        self.showInfo(f"合成成功!")
 
     def DynWidgetsUpdates(self):
         self.clock["text"] = ctime()
         self.root.update()
         self.root.after(100, self.DynWidgetsUpdates)
-
-    # def returnMousePosition(self, e):
-    #     self.mouseX = e.x
-    #     self.mouseY = e.y
 
     def showInfo(self, text: str, tag: str = ""):
         if text == "\n":
@@ -245,4 +249,5 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         self.tooltip.place(x=e.x, y=e.y)
 
     def leaveItemTag(self, _):
+        global image
         self.tooltip.place_forget()

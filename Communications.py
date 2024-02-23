@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 
 class Item:
@@ -104,14 +104,18 @@ class PlayerInventoryItemStack:
             self.stack[item] = 0
         self.stack[item] += number
         self.communicationUpdate()
-        return 0
 
     def loseItem(self, item: Item, number: int):
+        if item not in self.stack.keys():
+            return False
         if self.stack[item] < number:
-            return 1
+            return False
         self.stack[item] += number
         self.communicationUpdate()
-        return 0
+        return True
+
+    def returnItems(self) -> Dict[Item, int]:
+        return self.stack
 
     def craftItem(self, recipe: Recipe):
         inventoryBackup = self.stack
