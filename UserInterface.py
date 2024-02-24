@@ -30,7 +30,9 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         self.looper = looper
 
         self.root = Tk()
-        self.root.title("Contribute & Idea & Code by Adentent | 2023/9/29 版本")
+        self.root.title(
+            "Craft Game | Contribute & Idea & Code by Adentent | 2024/2/24 版本"
+        )
 
         self.generateWidgets()
         self.buttonBind()
