@@ -12,7 +12,11 @@ try:
 except ImportError:
     logOutput("缺失pyglet, 正在安装")
     pipInstall(["install", "pyglet"])
-    from pyglet import font
+    try:
+        from pyglet import font
+    except ImportError:
+        logOutput("安装失败, 请自行安装pyglet后再运行")
+        exit()
 
 
 class UserInterfaceGenerator:  # It is not a interface, but it is a user interface. (cold joke)
@@ -85,19 +89,20 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         self.showInfo("背包: " + attributes.inventory.formatOutput())
         self.root.update()
 
-    # BUG: 表面上显示了两个合成表，其实只有一个！！
     def showRecipes(self):
-        recipeStackRecipes = attributes.recipeStack.returnRecipe()
+        recipeStackRecipes = attributes.recipeStack.returnRecipes()
         self.textShowInfo.delete(1.0, END)
         for i in recipeStackRecipes:
             for j in i.output:
                 self.textShowInfo.tag_configure(
-                    "link" + j.name, foreground="blue", underline=True
+                    f"link_{i.name}", foreground="blue", underline=True
                 )
                 self.textShowInfo.tag_bind(
-                    "link" + j.name, "<Button-1>", lambda _: self.showRecipe(i)
+                    f"link_{i.name}",
+                    "<Button-1>",
+                    self.showRecipe(i),
                 )
-                self.showInfo(j.name, "link" + j.name)
+                self.showInfo(j.name, f"link_{i.name}")
         self.root.update()
 
     def showTips(self, _=None):
@@ -139,39 +144,47 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         self.textShowInfo.delete(1.0, END)
         self.showInfo("矿挖好了")
 
-    def showRecipe(self, recipe):
-        self.textShowInfo.delete(1.0, END)
-        self.showInfo(
-            f"{', '.join([i.name for i in recipe.input])}通过{recipe.mid.name}来合成{', '.join([i.name for i in recipe.output])}",
-        )
-        self.textShowInfo.tag_config("back", foreground="blue", underline=True)
-        self.textShowInfo.tag_bind("back", "<Button-1>", lambda _: self.showRecipes())
-        self.textShowInfo.tag_configure(
-            "craft" + ",".join([i.name for i in recipe.output]),
-            foreground="blue",
-            underline=True,
-        )
-        self.textShowInfo.tag_bind(
-            "craft" + ",".join([i.name for i in recipe.output]),
-            "<Button-1>",
-            lambda _: self.doRecipe(recipe),
-        )
-        self.showInfo("合成", "craft" + ",".join([i.name for i in recipe.output]))
-        self.showInfo("<-返回", "back")
+    def showRecipe(self, recipe: Recipe):
+        def callback(_):
+            self.textShowInfo.delete(1.0, END)
+            self.showInfo(
+                f"{', '.join([i.name for i in recipe.input])}通过{recipe.mid.name}来合成{', '.join([i.name for i in recipe.output])}",
+            )
+            self.textShowInfo.tag_config("back", foreground="blue", underline=True)
+            self.textShowInfo.tag_bind(
+                "back", "<Button-1>", lambda _: self.showRecipes()
+            )
+            self.textShowInfo.tag_configure(
+                "craft",
+                foreground="blue",
+                underline=True,
+            )
+            self.textShowInfo.tag_bind(
+                "craft",
+                "<Button-1>",
+                self.doRecipe(recipe),
+            )
+            self.showInfo("合成", "craft")
+            self.showInfo("<-返回", "back")
+
+        return callback
 
     def doRecipe(self, recipe: Recipe):
-        inventoryCpy = attributes.inventory
-        for ipt in recipe.input:
-            if not inventoryCpy.loseItem(ipt, 1):
-                self.textShowInfo.delete(1.0, END)
-                self.showInfo(f"合成失败! 缺失{ipt.name}!")
-                self.showInfo("<-返回", "back")
-                return
-        for ipt in recipe.input:
-            attributes.inventory.loseItem(ipt, 1)
-        for opt in recipe.output:
-            attributes.inventory.getItem(opt, 1)
-        self.showInfo(f"合成成功!")
+        def callback(_):
+            inventoryCpy = attributes.inventory
+            for ipt in recipe.input:
+                if not inventoryCpy.loseItem(ipt, 1):
+                    self.textShowInfo.delete(1.0, END)
+                    self.showInfo(f"合成失败! 缺失{ipt.name}!")
+                    self.showInfo("<-返回", "back")
+                    return
+            for ipt in recipe.input:
+                attributes.inventory.loseItem(ipt, 1)
+            for opt in recipe.output:
+                attributes.inventory.getItem(opt, 1)
+            self.showInfo(f"合成成功!")
+
+        return callback
 
     def DynWidgetsUpdates(self):
         self.clock["text"] = ctime()
@@ -231,22 +244,22 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         items = attributes.itemStack.returnAllItems()
         for i in items:
             self.textShowInfo.tag_configure(f"item_{i}", background="light grey")
-            self.textShowInfo.tag_bind(
-                f"item_{i}", "<Enter>", lambda e: self.enterItemTag(e, i)
-            )
+            self.textShowInfo.tag_bind(f"item_{i}", "<Enter>", self.enterItemTag(i))
             self.textShowInfo.tag_bind(f"item_{i}", "<Leave>", self.leaveItemTag)
 
-    def enterItemTag(self, e, name: str):
-        global image
-        image = PhotoImage(file=f"assets/resources/{name}.png")
-        self.tooltip.configure(
-            image=image,
-            text=name,
-            compound=TOP,
-            anchor="sw",
-            font=("MiSans Normal", 10),
-        )
-        self.tooltip.place(x=e.x, y=e.y)
+    def enterItemTag(self, name: str):
+        def callback(e):
+            global image
+            image = PhotoImage(file=f"assets/resources/{name}.png")
+            self.tooltip.configure(
+                image=image,
+                text=name,
+                compound=TOP,
+                font=("MiSans Normal", 10),
+            )
+            self.tooltip.place(x=e.x, y=e.y)
+
+        return callback
 
     def leaveItemTag(self, _):
         global image

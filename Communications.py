@@ -8,49 +8,11 @@ class Item:
 
 
 class Recipe:
-    def __init__(self, input: list[Item], mid: str, output: list[Item]):
+    def __init__(self, input: list[Item], mid: Item, output: list[Item], name: str):
         self.input = input
         self.mid = mid
         self.output = output
-
-
-class RecipeStack:
-    def __init__(self, itemStack) -> None:
-        self.itemStack = itemStack
-        self.stack = []
-
-    def addRecipe(self, ipt: list, mid: str, output: list):
-        recipe = Recipe(
-            self.itemStack.findItems(ipt),
-            self.itemStack.findItem(mid),
-            self.itemStack.findItems(output),
-        )
-        self.stack.append(recipe)
-
-    def addRecipes(self, stack: list):
-        for i in stack:
-            self.addRecipe(i[0], i[1], i[2])
-
-    def returnOutputs(self) -> list[list[Item]]:
-        res = []
-        for i in self.stack:
-            res.append(i.output)
-        return res
-
-    def returnRecipe(self) -> list[Recipe]:
-        return self.stack
-
-    def logFormat(self):
-        return "\n".join(
-            [
-                "{}经过{}产出{}".format(
-                    ",".join([j.name for j in i.input]),
-                    i.mid.name,
-                    ",".join([j.name for j in i.output]),
-                )
-                for i in self.stack
-            ]
-        )
+        self.name = name
 
 
 class ItemStack:
@@ -89,6 +51,47 @@ class ItemStack:
         return ",".join([i.name + "(%d)" % i.number for i in self.stack])
 
 
+class RecipeStack:
+    def __init__(self, itemStack: ItemStack) -> None:
+        self.itemStack = itemStack
+        self.stack = []
+
+    def addRecipe(self, ipt: list, mid: str, output: list, name: str):
+        recipe = Recipe(
+            self.itemStack.findItems(ipt),
+            self.itemStack.findItem(mid),
+            self.itemStack.findItems(output),
+            name,
+        )
+        self.stack.append(recipe)
+
+    def addRecipes(self, stack: list):
+        for i in stack:
+            self.addRecipe(i[0], i[1], i[2], i[3])
+
+    def returnOutputs(self) -> list[list[Item]]:
+        res = []
+        for i in self.stack:
+            res.append(i.output)
+        return res
+
+    def returnRecipes(self) -> list[Recipe]:
+        return self.stack
+
+    def logFormat(self):
+        return "\n".join(
+            [
+                "{}: {}经过{}产出{}".format(
+                    i.name,
+                    ",".join([j.name for j in i.input]),
+                    i.mid.name,
+                    ",".join([j.name for j in i.output]),
+                )
+                for i in self.stack
+            ]
+        )
+
+
 class PlayerInventoryItemStack:
     def __init__(self) -> None:
         self.stack = {}
@@ -110,7 +113,7 @@ class PlayerInventoryItemStack:
             return False
         if self.stack[item] < number:
             return False
-        self.stack[item] += number
+        self.stack[item] -= number
         self.communicationUpdate()
         return True
 
@@ -132,10 +135,21 @@ class PlayerInventoryItemStack:
         self.communicationUpdate()
         return 0
 
-    def formatOutput(self):
-        if not self.stack:
+    def formatOutput(self) -> str:
+        allZero = False
+        for i in self.stack.items():
+            if i != 0:
+                break
+            allZero = True
+        if (not self.stack) or allZero:
             return "空空如也..."
-        return str(", ".join([f"{i.name}({self.stack[i]})" for i in self.stack]))
+        res = ""
+        for item in self.stack:
+            number = self.stack[item]
+            if number == 0:
+                continue
+            res += f"{item.name}({number}), "
+        return res[:-2]
 
 
 class event:

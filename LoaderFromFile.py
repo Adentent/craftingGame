@@ -1,8 +1,21 @@
 from chardet import detect
+from pip import main as pipInstall
 
 from Communications import ItemStack, RecipeStack, attributes
 from Const import Const
 from LogOutput import logOutput
+
+# Currently not used
+# try:
+#     from numba import jit
+# except ImportError:
+#     logOutput("缺失numba, 正在安装")
+#     pipInstall(["install", "numba"])
+#     try:
+#         from numba import jit, njit
+#     except ImportError:
+#         logOutput("安装失败, 请自行安装numba后再运行")
+#         exit()
 
 
 def getFileEncoding(filepath):
@@ -21,18 +34,15 @@ def recipesFixer(origin: list[str]):
         i = "".join(i.split())  # 除去所有空格
         input = i.split("-")[0].split(",")
         mid = i.split("-")[1].split(">")[0]
-        output = i.split(">")[1].split(",")
-        res.append([input, mid, output])
+        output = i.split(">")[1].split("[")[0].split(",")
+        name = i.split(">")[1].split("[")[1].split("]")[0]
+        res.append([input, mid, output, name])
     return res
 
 
 class Loader:
     def __init__(self):
-        """Load the recipes and items from the file.
-
-        Returns:
-            (ItemStack, RecipeStack): ItemStack is all the items ingame, RecipeStack is all the Recipes ingame.
-        """
+        """加载所有物品和合成表"""
         self.itemsLoad()
         self.recipesLoad()
 
