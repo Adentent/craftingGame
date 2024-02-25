@@ -2,21 +2,11 @@ from time import ctime, time
 from tkinter import END, LEFT, SOLID, TOP, Button, Frame, Label, PhotoImage, Text, Tk
 
 from pip import main as pipInstall
+from pyglet import font
 
 from Communications import *
 from LogOutput import logOutput
 from MainLoop import Loop
-
-try:
-    from pyglet import font
-except ImportError:
-    logOutput("缺失pyglet, 正在安装")
-    pipInstall(["install", "pyglet"])
-    try:
-        from pyglet import font
-    except ImportError:
-        logOutput("安装失败, 请自行安装pyglet后再运行")
-        exit()
 
 
 class UserInterfaceGenerator:  # It is not a interface, but it is a user interface. (cold joke)
@@ -149,9 +139,14 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
     def showRecipe(self, recipe: Recipe):
         def callback(_):
             self.textShowInfo.delete(1.0, END)
-            self.showInfo(
-                f"{', '.join([i.name for i in recipe.input])}通过{recipe.mid.name}来合成{', '.join([i.name for i in recipe.output])}",
-            )
+            if recipe.mid is not None:
+                self.showInfo(
+                    f"{', '.join([i.name for i in recipe.input])}通过{recipe.mid.name}来合成{', '.join([i.name for i in recipe.output])}",
+                )
+            else:
+                self.showInfo(
+                    f"用{', '.join([i.name for i in recipe.input])}制作{', '.join([i.name for i in recipe.output])}",
+                )
             self.textShowInfo.tag_config("back", foreground="blue", underline=True)
             self.textShowInfo.tag_bind(
                 "back", "<Button-1>", lambda _: self.showRecipes()

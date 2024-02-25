@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 
 class Item:
@@ -8,7 +8,9 @@ class Item:
 
 
 class Recipe:
-    def __init__(self, input: list[Item], mid: Item, output: list[Item], name: str):
+    def __init__(
+        self, input: list[Item], mid: Union[Item, None], output: list[Item], name: str
+    ):
         self.input = input
         self.mid = mid
         self.output = output
@@ -30,7 +32,7 @@ class ItemStack:
                 i = i[:-1]
             items.append(self.addItem(i))
 
-    def findItem(self, name: str):
+    def findItem(self, name: str) -> Item:
         for i in self.stack:
             if i.name == name:
                 return i
@@ -54,12 +56,12 @@ class ItemStack:
 class RecipeStack:
     def __init__(self, itemStack: ItemStack) -> None:
         self.itemStack = itemStack
-        self.stack = []
+        self.stack: List[Recipe] = []
 
-    def addRecipe(self, ipt: list, mid: str, output: list, name: str):
+    def addRecipe(self, ipt: list, mid: Union[str, None], output: list, name: str):
         recipe = Recipe(
             self.itemStack.findItems(ipt),
-            self.itemStack.findItem(mid),
+            None if mid is None else self.itemStack.findItem(mid),
             self.itemStack.findItems(output),
             name,
         )
@@ -79,17 +81,17 @@ class RecipeStack:
         return self.stack
 
     def logFormat(self):
-        return "\n".join(
-            [
-                "{}: {}经过{}产出{}".format(
-                    i.name,
-                    ",".join([j.name for j in i.input]),
-                    i.mid.name,
-                    ",".join([j.name for j in i.output]),
-                )
-                for i in self.stack
-            ]
-        )
+        res = []
+        for i in self.stack:
+            input_names = ", ".join([inp.name for inp in i.input])
+
+            output_names = ", ".join([out.name for out in i.output])
+
+            if i.mid is None:
+                res.append(f"{i.name}: 用{input_names}制作{output_names}")
+            else:
+                res.append(f"{i.name}: {input_names}经过{i.mid.name}产出{output_names}")
+        return "\n".join(res)
 
 
 class PlayerInventoryItemStack:

@@ -1,3 +1,5 @@
+import json
+
 from chardet import detect
 from pip import main as pipInstall
 
@@ -6,16 +8,7 @@ from Const import Const
 from LogOutput import logOutput
 
 # Currently not used
-# try:
-#     from numba import jit
-# except ImportError:
-#     logOutput("缺失numba, 正在安装")
-#     pipInstall(["install", "numba"])
-#     try:
-#         from numba import jit, njit
-#     except ImportError:
-#         logOutput("安装失败, 请自行安装numba后再运行")
-#         exit()
+# from numba import jit
 
 
 def getFileEncoding(filepath):
@@ -28,16 +21,35 @@ def getFileEncoding(filepath):
         return encoding
 
 
-def recipesFixer(origin: list[str]):
+def recipesFixer(originJsonScript: str):
     res = []
-    for i in origin:
-        i = "".join(i.split())  # 除去所有空格
-        input = i.split("-")[0].split(",")
-        mid = i.split("-")[1].split(">")[0]
-        output = i.split(">")[1].split("[")[0].split(",")
-        name = i.split(">")[1].split("[")[1].split("]")[0]
-        res.append([input, mid, output, name])
+    for key, value in json.loads(originJsonScript).items():
+        name = key
+        ipt = value["input"]
+        if "mid" in value:
+            mid = value["mid"]
+        else:
+            mid = None
+        opt = value["output"]
+        res.append([ipt, mid, opt, name])
     return res
+
+
+# TODO: 弃用, 使用json来实现, 目前由于使用了读取整个文件夹的方案, json文件也被错误读取, 目前程序无法使用
+# def recipesFixer(origin: list[str]):
+#     print(origin)
+#     res = []
+#     for i in origin:
+#         i = "".join(i.split())  # 除去所有空格
+#         input = i.split("-")[0].split(",")
+#         if "->" in i:
+#             mid = None
+#         else:
+#             mid = i.split("-")[1].split(">")[0]
+#         output = i.split(">")[1].split("[")[0].split(",")
+#         name = i.split(">")[1].split("[")[1].split("]")[0]
+#         res.append([input, mid, output, name])
+#     return res
 
 
 class Loader:
@@ -58,8 +70,14 @@ class Loader:
     def recipesLoad(self):
         logOutput("读取配方")
         for i in Const.recipesFiles:
+            # print(i)
+            if ".rcp" in str(i):
+                logOutput(f"请不要使用rcp文件, 已忽略{i}")
+                continue
             with open(i, encoding=getFileEncoding(i)) as f:
-                recipes = recipesFixer(f.readlines())
+                # recipes = recipesFixer(f.readlines())
+                # print(f.read())
+                recipes = recipesFixer(f.read())
                 recipeStack.addRecipes(recipes)
         logOutput("读取配方完毕")
         logOutput("所有配方输出如下：\n" + recipeStack.logFormat())
@@ -74,6 +92,3 @@ class Loader:
 
 itemStack = ItemStack()
 recipeStack = RecipeStack(itemStack)
-
-if __name__ == "__main__":
-    Loader()
