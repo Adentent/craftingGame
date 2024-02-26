@@ -5,6 +5,7 @@ from pip import main as pipInstall
 from pyglet import font
 
 from Communications import *
+from Const import Const
 from LogOutput import logOutput
 from MainLoop import Loop
 
@@ -20,9 +21,7 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         self.looper = looper
 
         self.root = Tk()
-        self.root.title(
-            "Craft Game | Contribute & Idea & Code by Adentent | 2024/2/24 版本"
-        )
+        self.root.title(f"Craft Game | Version {Const.version}")
 
         self.generateWidgets()
         self.buttonBind()
@@ -52,9 +51,13 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         self.buttonShowTips = Button(
             self.buttonFrame, text="帮助", command=self.showTips
         )
+        self.buttonShowCredits = Button(
+            self.buttonFrame, text="Credits", command=self.showCredits
+        )
         self.buttonShowInventory.pack(side=LEFT)
         self.buttonCraft.pack(side=LEFT)
         self.buttonShowTips.pack(side=LEFT)
+        self.buttonShowCredits.pack(side=LEFT)
         self.buttonFrame.pack()
 
         self.clock = Label(self.root, text="")
@@ -85,6 +88,11 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         recipeStackRecipes = attributes.recipeStack.returnRecipes()
         self.textShowInfo.delete(1.0, END)
         for i in recipeStackRecipes:
+            if (
+                i.mid is not None
+                and i.mid not in attributes.inventory.returnItems().keys()
+            ):
+                continue
             for j in i.output:
                 self.textShowInfo.tag_configure(
                     f"link_{i.name}", foreground="blue", underline=True
@@ -169,10 +177,15 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
     def doRecipe(self, recipe: Recipe):
         def callback(_):
             inventoryCpy = attributes.inventory
-            for ipt in recipe.input:
-                if not inventoryCpy.loseItem(ipt, 1):
+            for item, number in recipe.input.items():
+                if not inventoryCpy.loseItem(item, number):
                     self.textShowInfo.delete(1.0, END)
-                    self.showInfo(f"合成失败! 缺失{ipt.name}!")
+                    if item in attributes.inventory.returnItems():
+                        self.showInfo(
+                            f"合成失败! 缺失{number - attributes.inventory.returnItems()[item]}个{item.name}!"
+                        )
+                    else:
+                        self.showInfo(f"合成失败! 缺失{number}个{item.name}!")
                     self.showInfo("<-返回", "back")
                     return
             for ipt in recipe.input:
@@ -219,7 +232,26 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
                     )
         self.item_specifer()
 
-    # BUG: 为什么什么都是铬？？？
+    def showCredits(self):
+        creditsWindow = Tk()
+        creditsWindow.overrideredirect(True)
+
+        width = 380
+        heigh = 300
+        screenwidth = creditsWindow.winfo_screenwidth()
+        screenheight = creditsWindow.winfo_screenheight()
+        creditsWindow.geometry(
+            "%dx%d+%d+%d"
+            % (width, heigh, (screenwidth - width) / 2, (screenheight - heigh) / 2)
+        )
+        creditsLabel = Label(
+            creditsWindow,
+            text="All By Adentent\n\n左键点击该窗口以离开",
+            font=("MiSans Normal", 12),
+        )
+        creditsLabel.pack(expand=True)
+        creditsWindow.bind_all("<Button-1>", lambda _: creditsWindow.destroy())
+
     def add_tag_to_text(self, specifer: str, tag_name: str):
         start = 1.0
         while True:

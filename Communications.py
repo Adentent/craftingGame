@@ -9,7 +9,11 @@ class Item:
 
 class Recipe:
     def __init__(
-        self, input: list[Item], mid: Union[Item, None], output: list[Item], name: str
+        self,
+        input: Dict[Item, int],
+        mid: Union[Item, None],
+        output: Dict[Item, int],
+        name: str,
     ):
         self.input = input
         self.mid = mid
@@ -58,11 +62,17 @@ class RecipeStack:
         self.itemStack = itemStack
         self.stack: List[Recipe] = []
 
-    def addRecipe(self, ipt: list, mid: Union[str, None], output: list, name: str):
+    def addRecipe(
+        self,
+        ipt: Dict[str, int],
+        mid: Union[str, None],
+        output: Dict[str, int],
+        name: str,
+    ):
         recipe = Recipe(
-            self.itemStack.findItems(ipt),
+            {self.itemStack.findItem(item): number for item, number in ipt.items()},
             None if mid is None else self.itemStack.findItem(mid),
-            self.itemStack.findItems(output),
+            {self.itemStack.findItem(item): number for item, number in output.items()},
             name,
         )
         self.stack.append(recipe)
@@ -83,9 +93,13 @@ class RecipeStack:
     def logFormat(self):
         res = []
         for i in self.stack:
-            input_names = ", ".join([inp.name for inp in i.input])
+            input_names = ", ".join(
+                [f"{number}个{inp.name}" for inp, number in i.input.items()]
+            )
 
-            output_names = ", ".join([out.name for out in i.output])
+            output_names = ", ".join(
+                [f"{number}个{out.name}" for out, number in i.output.items()]
+            )
 
             if i.mid is None:
                 res.append(f"{i.name}: 用{input_names}制作{output_names}")
@@ -121,21 +135,6 @@ class PlayerInventoryItemStack:
 
     def returnItems(self) -> Dict[Item, int]:
         return self.stack
-
-    def craftItem(self, recipe: Recipe):
-        inventoryBackup = self.stack
-        inputs = recipe.input
-        for i in inputs:
-            if self.loseItem(
-                i, 1
-            ):  # If the player doesn't own enough items, then return all the items.
-                self.stack = inventoryBackup
-                return 1
-        outputs = recipe.output
-        for i in outputs:
-            self.getItem(i, 1)
-        self.communicationUpdate()
-        return 0
 
     def formatOutput(self) -> str:
         allZero = False

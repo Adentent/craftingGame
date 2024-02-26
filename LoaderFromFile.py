@@ -35,23 +35,6 @@ def recipesFixer(originJsonScript: str):
     return res
 
 
-# TODO: 弃用, 使用json来实现, 目前由于使用了读取整个文件夹的方案, json文件也被错误读取, 目前程序无法使用
-# def recipesFixer(origin: list[str]):
-#     print(origin)
-#     res = []
-#     for i in origin:
-#         i = "".join(i.split())  # 除去所有空格
-#         input = i.split("-")[0].split(",")
-#         if "->" in i:
-#             mid = None
-#         else:
-#             mid = i.split("-")[1].split(">")[0]
-#         output = i.split(">")[1].split("[")[0].split(",")
-#         name = i.split(">")[1].split("[")[1].split("]")[0]
-#         res.append([input, mid, output, name])
-#     return res
-
-
 class Loader:
     def __init__(self):
         """加载所有物品和合成表"""
@@ -75,8 +58,6 @@ class Loader:
                 logOutput(f"请不要使用rcp文件, 已忽略{i}")
                 continue
             with open(i, encoding=getFileEncoding(i)) as f:
-                # recipes = recipesFixer(f.readlines())
-                # print(f.read())
                 recipes = recipesFixer(f.read())
                 recipeStack.addRecipes(recipes)
         logOutput("读取配方完毕")
