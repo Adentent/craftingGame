@@ -31,7 +31,11 @@ def recipesFixer(originJsonScript: str):
         else:
             mid = None
         opt = value["output"]
-        res.append([ipt, mid, opt, name])
+        if "time" in value:
+            time = value["time"]
+        else:
+            time = 0
+        res.append([ipt, mid, opt, name, time])
     return res
 
 
@@ -45,15 +49,21 @@ class Loader:
         logOutput("读取物品")
         for i in Const.itemsFiles:
             with open(i, encoding=getFileEncoding(i)) as f:
+                tag = ""
                 items = f.readlines()
-                itemStack.addItems(items)
+                if items[0] == "#" and "MACHINE" in items[0]:
+                    tag = "machine"
+                for item in items:
+                    item = item.removesuffix("\n")
+                    if item == "" or item[0] == "#" or item[:2] == "//":
+                        continue
+                    itemStack.addItem(item, tag)
         logOutput("读取物品完毕")
         logOutput("所有物品输出如下：\n" + itemStack.logFormat())
 
     def recipesLoad(self):
         logOutput("读取配方")
         for i in Const.recipesFiles:
-            # print(i)
             if ".rcp" in str(i):
                 logOutput(f"请不要使用rcp文件, 已忽略{i}")
                 continue

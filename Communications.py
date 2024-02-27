@@ -2,9 +2,10 @@ from typing import Dict, List, Tuple, Union
 
 
 class Item:
-    def __init__(self, name: str, number: int):
+    def __init__(self, name: str, number: int, tag: str):
         self.name = name
         self.number = number
+        self.tag = tag
 
 
 class Recipe:
@@ -14,27 +15,32 @@ class Recipe:
         mid: Union[Item, None],
         output: Dict[Item, int],
         name: str,
+        time: int,
     ):
+        """生成一个配方类型
+
+        Args:
+            input (Dict[Item, int]): 输入物品
+            mid (Union[Item, None]): 中间商
+            output (Dict[Item, int]): 输出物品
+            name (str): 合成表名称
+            time (int): 合成表耗时, 没有则为0, 单位为ms
+        """
         self.input = input
         self.mid = mid
         self.output = output
         self.name = name
+        self.time = time
+        self.needTime = not self.time
 
 
 class ItemStack:
     def __init__(self):
         self.stack: List[Item] = []
 
-    def addItem(self, name: str):
-        item = Item(name, len(self.stack) + 1)
+    def addItem(self, name: str, tag: str):
+        item = Item(name, len(self.stack) + 1, tag)
         self.stack.append(item)
-
-    def addItems(self, names: list):
-        items = []
-        for i in names:
-            if i[-1] == "\n":
-                i = i[:-1]
-            items.append(self.addItem(i))
 
     def findItem(self, name: str) -> Item:
         for i in self.stack:
@@ -68,18 +74,20 @@ class RecipeStack:
         mid: Union[str, None],
         output: Dict[str, int],
         name: str,
+        time: int,
     ):
         recipe = Recipe(
             {self.itemStack.findItem(item): number for item, number in ipt.items()},
             None if mid is None else self.itemStack.findItem(mid),
             {self.itemStack.findItem(item): number for item, number in output.items()},
             name,
+            time,
         )
         self.stack.append(recipe)
 
     def addRecipes(self, stack: list):
         for i in stack:
-            self.addRecipe(i[0], i[1], i[2], i[3])
+            self.addRecipe(i[0], i[1], i[2], i[3], i[4])
 
     def returnOutputs(self) -> list[list[Item]]:
         res = []

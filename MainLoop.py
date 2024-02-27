@@ -6,10 +6,6 @@ from LogOutput import logOutput
 
 
 # TODO: 制作一个能让工作台等Machine放下来的办法, 并且给Item加一个属性以区分Item和Machine
-# TODO: 简化rcp文件, 支持*n的写法
-#       例如橡树木头 * 4 -> 工作台
-#       而非橡树木头, 橡树木头, 橡树木头, 橡树木头 -> 工作台
-#       这样写很糟糕
 class Loop:
     def __init__(self):
         self.loader = Loader()

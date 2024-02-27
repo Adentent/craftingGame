@@ -18,6 +18,7 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
             font.load("Exo")
         self.mouseX: int = 0
         self.mouseY: int = 0
+        self.ifDarkMode = False
         self.looper = looper
 
         self.root = Tk()
@@ -33,13 +34,15 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         logOutput("UI界面终止")
 
     def generateWidgets(self):
-        self.textShowInfo = Text(self.root, cursor="arrow", height=8, width=50)
-        self.textShowInfo.bind("<Button-1>", lambda f: "break")
-        self.textShowInfo.delete(1.0, END)
+        self.textShowInfo = Text(self.root, cursor="arrow", height=8, width=25)
+        self.textShowInfo.bind("<Button-1>", lambda _: "break")
         self.showInfo(
             "Tips:\n按'Q'来获取一些橡树木头...\n按'W'来挖矿...\n按'H'以显示此Tips",
         )
-        self.textShowInfo.pack(fill="both", expand=True)
+        self.textShowRecipeStatus = Text(self.root, cursor="arrow", height=8, width=25)
+        self.textShowRecipeStatus.bind("<Button-1>", lambda _: "break")
+        self.textShowInfo.pack(side=LEFT, fill="both", expand=True)
+        self.textShowRecipeStatus.pack(side="right", fill="both", expand=True)
 
         self.buttonFrame = Frame(self.root)
         self.buttonShowInventory = Button(
@@ -54,10 +57,14 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         self.buttonShowCredits = Button(
             self.buttonFrame, text="Credits", command=self.showCredits
         )
+        self.darkModeSwitch = Button(
+            self.buttonFrame, text="暗色模式开关", command=self.darkMode
+        )
         self.buttonShowInventory.pack(side=LEFT)
         self.buttonCraft.pack(side=LEFT)
         self.buttonShowTips.pack(side=LEFT)
         self.buttonShowCredits.pack(side=LEFT)
+        self.darkModeSwitch.pack(side=LEFT)
         self.buttonFrame.pack()
 
         self.clock = Label(self.root, text="")
@@ -175,24 +182,31 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         return callback
 
     def doRecipe(self, recipe: Recipe):
+        self.showInfo(f"需要{recipe.time / 1000}s来完成这个合成...")
+
         def callback(_):
-            inventoryCpy = attributes.inventory
-            for item, number in recipe.input.items():
-                if not inventoryCpy.loseItem(item, number):
-                    self.textShowInfo.delete(1.0, END)
-                    if item in attributes.inventory.returnItems():
-                        self.showInfo(
-                            f"合成失败! 缺失{number - attributes.inventory.returnItems()[item]}个{item.name}!"
-                        )
-                    else:
-                        self.showInfo(f"合成失败! 缺失{number}个{item.name}!")
-                    self.showInfo("<-返回", "back")
-                    return
-            for ipt in recipe.input:
-                attributes.inventory.loseItem(ipt, 1)
-            for opt in recipe.output:
-                attributes.inventory.getItem(opt, 1)
-            self.showInfo(f"合成成功!")
+            def callback2():
+                inventoryCpy = attributes.inventory
+                for item, number in recipe.input.items():
+                    if not inventoryCpy.loseItem(item, number):
+                        self.textShowInfo.delete(1.0, END)
+                        if item in attributes.inventory.returnItems():
+                            self.showInfo(
+                                f"合成失败! 缺失{number - attributes.inventory.returnItems()[item]}个{item.name}!"
+                            )
+                        else:
+                            self.showInfo(f"合成失败! 缺失{number}个{item.name}!")
+                        self.showInfo("<-返回", "back")
+                        return
+                for ipt in recipe.input:
+                    attributes.inventory.loseItem(ipt, 1)
+                for opt in recipe.output:
+                    attributes.inventory.getItem(opt, 1)
+                self.showInfo(
+                    f"{', '.join([i.name for i in recipe.output.keys()])}合成成功!"
+                )
+
+            self.root.after(recipe.time, callback2)
 
         return callback
 
@@ -293,3 +307,11 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
     def leaveItemTag(self, _):
         global image
         self.tooltip.place_forget()
+
+    # FIXME: 极度未完成, 体验极度垃圾, 亟需完善
+    def darkMode(self):
+        if self.ifDarkMode:
+            self.textShowInfo.configure(background="white", foreground="black")
+        else:
+            self.textShowInfo.configure(background="black", foreground="white")
+        self.ifDarkMode = not self.ifDarkMode
