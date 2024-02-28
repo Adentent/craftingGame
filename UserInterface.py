@@ -1,13 +1,73 @@
 from time import ctime, time
-from tkinter import END, LEFT, SOLID, TOP, Button, Frame, Label, PhotoImage, Text, Tk
+from tkinter import (
+    END,
+    LEFT,
+    SOLID,
+    TOP,
+    Button,
+    Frame,
+    Label,
+    PhotoImage,
+    Text,
+    Tk,
+)
+from tkinter.font import ITALIC
 
-from pip import main as pipInstall
 from pyglet import font
+from ttkbootstrap import Style
 
 from Communications import *
 from Const import Const
 from LogOutput import logOutput
 from MainLoop import Loop
+
+
+class MyText(Text):
+    def add_tag_to_text(self, specifer: str, tag_name: str):
+        start = 1.0
+        while True:
+            start = self.search(specifer, start, END)
+            if not start:
+                break
+            end = f"{start}+{len(specifer)}c"
+            self.tag_add(tag_name, start, end)
+            start = end
+
+    def item_specifer(self):
+        items = attributes.itemStack.returnAllItems()
+        for i in items:
+            if i not in self.get(1.0, END):
+                continue
+            self.add_tag_to_text(i, f"item_{i}")
+
+    def showInfo(self, text: str, tag: str = ""):
+        if text == "\n":
+            self.insert(END, "\n")
+            return
+        lines = text.split("\n")
+        existing_lines = self.get("1.0", END).count("\n")
+        for j in range(len(lines)):
+            line = lines[j]
+            if tag == "":
+                self.insert(END, line + "\n")
+            else:
+                self.insert(END, line + "\n", tag)
+            for i in range(len(line)):
+                if "\u4e00" <= line[i] <= "\u9fff":  # 判断是否为中文字符
+                    self.tag_configure("chinese", font=("MiSans Normal", 12))
+                    self.tag_add(
+                        "chinese",
+                        f"{j+existing_lines}.{i}",
+                        f"{j+existing_lines}.{i+1}",
+                    )
+                else:
+                    self.tag_configure("english", font=("Exo", 12))
+                    self.tag_add(
+                        "english",
+                        f"{j+existing_lines}.{i}",
+                        f"{j+existing_lines}.{i+1}",
+                    )
+        self.item_specifer()
 
 
 class UserInterfaceGenerator:  # It is not a interface, but it is a user interface. (cold joke)
@@ -18,10 +78,11 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
             font.load("Exo")
         self.mouseX: int = 0
         self.mouseY: int = 0
-        self.ifDarkMode = False
+        self.ifDarkMode = True
         self.looper = looper
 
-        self.root = Tk()
+        self.style = Style(theme="darkly")
+        self.root: Tk = self.style.master
         self.root.title(f"Craft Game | Version {Const.version}")
 
         self.generateWidgets()
@@ -34,12 +95,14 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         logOutput("UI界面终止")
 
     def generateWidgets(self):
-        self.textShowInfo = Text(self.root, cursor="arrow", height=8, width=25)
+        self.textShowInfo = MyText(self.root, cursor="arrow", height=8, width=25)
         self.textShowInfo.bind("<Button-1>", lambda _: "break")
-        self.showInfo(
+        self.textShowInfo.showInfo(
             "Tips:\n按'Q'来获取一些橡树木头...\n按'W'来挖矿...\n按'H'以显示此Tips",
         )
-        self.textShowRecipeStatus = Text(self.root, cursor="arrow", height=8, width=25)
+        self.textShowRecipeStatus = MyText(
+            self.root, cursor="arrow", height=8, width=25
+        )
         self.textShowRecipeStatus.bind("<Button-1>", lambda _: "break")
         self.textShowInfo.pack(side=LEFT, fill="both", expand=True)
         self.textShowRecipeStatus.pack(side="right", fill="both", expand=True)
@@ -88,7 +151,7 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
 
     def showInventory(self, _=None):
         self.textShowInfo.delete(1.0, END)
-        self.showInfo("背包: " + attributes.inventory.formatOutput())
+        self.textShowInfo.showInfo("背包: " + attributes.inventory.formatOutput())
         self.root.update()
 
     def showRecipes(self):
@@ -101,20 +164,18 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
             ):
                 continue
             for j in i.output:
-                self.textShowInfo.tag_configure(
-                    f"link_{i.name}", foreground="blue", underline=True
-                )
+                self.textShowInfo.tag_configure(f"link_{i.name}", underline=True)
                 self.textShowInfo.tag_bind(
                     f"link_{i.name}",
                     "<Button-1>",
                     self.showRecipe(i),
                 )
-                self.showInfo(j.name, f"link_{i.name}")
+                self.textShowInfo.showInfo(j.name, f"link_{i.name}")
         self.root.update()
 
     def showTips(self, _=None):
         self.textShowInfo.delete(1.0, END)
-        self.showInfo("Tips:\n按'Q'来获取一些橡树木头...\n按'W'来挖矿...")
+        self.textShowInfo.showInfo("Tips:\n按'Q'来获取一些橡树木头...\n按'W'来挖矿...")
         self.root.update()
 
     def qDown(self, _):
@@ -123,7 +184,7 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
 
         event.treeButtonDown = [True, time()]
         self.textShowInfo.delete(1.0, END)
-        self.showInfo("正在获取橡木...")
+        self.textShowInfo.showInfo("正在获取橡木...")
         self.root.update()
 
     def qRelease(self, _):
@@ -132,7 +193,7 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
 
         event.treeButtonRelease = [True, time()]
         self.textShowInfo.delete(1.0, END)
-        self.showInfo("橡木获取好了")
+        self.textShowInfo.showInfo("橡木获取好了")
 
     def wDown(self, _):
         if event.mineButtonDown[1] != -1:
@@ -140,7 +201,7 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
 
         event.mineButtonDown = [True, time()]
         self.textShowInfo.delete(1.0, END)
-        self.showInfo("正在挖矿...")
+        self.textShowInfo.showInfo("正在挖矿...")
         self.root.update()
 
     def wRelease(self, _):
@@ -149,26 +210,25 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
 
         event.mineButtonRelease = [True, time()]
         self.textShowInfo.delete(1.0, END)
-        self.showInfo("矿挖好了")
+        self.textShowInfo.showInfo("矿挖好了")
 
     def showRecipe(self, recipe: Recipe):
         def callback(_):
             self.textShowInfo.delete(1.0, END)
             if recipe.mid is not None:
-                self.showInfo(
+                self.textShowInfo.showInfo(
                     f"{', '.join([i.name for i in recipe.input])}通过{recipe.mid.name}来合成{', '.join([i.name for i in recipe.output])}",
                 )
             else:
-                self.showInfo(
+                self.textShowInfo.showInfo(
                     f"用{', '.join([i.name for i in recipe.input])}制作{', '.join([i.name for i in recipe.output])}",
                 )
-            self.textShowInfo.tag_config("back", foreground="blue", underline=True)
+            self.textShowInfo.tag_config("back", underline=True)
             self.textShowInfo.tag_bind(
                 "back", "<Button-1>", lambda _: self.showRecipes()
             )
             self.textShowInfo.tag_configure(
                 "craft",
-                foreground="blue",
                 underline=True,
             )
             self.textShowInfo.tag_bind(
@@ -176,33 +236,39 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
                 "<Button-1>",
                 self.doRecipe(recipe),
             )
-            self.showInfo("合成", "craft")
-            self.showInfo("<-返回", "back")
+            self.textShowInfo.showInfo("合成", "craft")
+            self.textShowInfo.showInfo("<-返回", "back")
 
         return callback
 
     def doRecipe(self, recipe: Recipe):
-        self.showInfo(f"需要{recipe.time / 1000}s来完成这个合成...")
+        self.textShowInfo.showInfo(f"需要{recipe.time / 1000}s来完成这个合成...")
 
         def callback(_):
+            inventoryCpy = attributes.inventory
+            for item, number in recipe.input.items():
+                if not inventoryCpy.loseItem(item, number):
+                    self.textShowInfo.delete(1.0, END)
+                    if item in attributes.inventory.returnItems():
+                        self.textShowRecipeStatus.showInfo(
+                            f"合成失败! 缺失{number - attributes.inventory.returnItems()[item]}个{item.name}!",
+                        )
+                    else:
+                        self.textShowRecipeStatus.showInfo(
+                            f"合成失败! 缺失{number}个{item.name}!"
+                        )
+                    self.textShowInfo.showInfo("<-返回", "back")
+                    return
+            self.textShowRecipeStatus.showInfo(
+                f"开始合成{', '.join([i.name for i in recipe.output.keys()])}"
+            )
+
             def callback2():
-                inventoryCpy = attributes.inventory
-                for item, number in recipe.input.items():
-                    if not inventoryCpy.loseItem(item, number):
-                        self.textShowInfo.delete(1.0, END)
-                        if item in attributes.inventory.returnItems():
-                            self.showInfo(
-                                f"合成失败! 缺失{number - attributes.inventory.returnItems()[item]}个{item.name}!"
-                            )
-                        else:
-                            self.showInfo(f"合成失败! 缺失{number}个{item.name}!")
-                        self.showInfo("<-返回", "back")
-                        return
                 for ipt in recipe.input:
                     attributes.inventory.loseItem(ipt, 1)
                 for opt in recipe.output:
                     attributes.inventory.getItem(opt, 1)
-                self.showInfo(
+                self.textShowRecipeStatus.showInfo(
                     f"{', '.join([i.name for i in recipe.output.keys()])}合成成功!"
                 )
 
@@ -214,37 +280,6 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         self.clock["text"] = ctime()
         self.root.update()
         self.root.after(100, self.DynWidgetsUpdates)
-
-    def showInfo(self, text: str, tag: str = ""):
-        if text == "\n":
-            self.textShowInfo.insert(END, "\n")
-            return
-        lines = text.split("\n")
-        existing_lines = self.textShowInfo.get("1.0", END).count("\n")
-        for j in range(len(lines)):
-            line = lines[j]
-            if tag == "":
-                self.textShowInfo.insert(END, line + "\n")
-            else:
-                self.textShowInfo.insert(END, line + "\n", tag)
-            for i in range(len(line)):
-                if "\u4e00" <= line[i] <= "\u9fff":  # 判断是否为中文字符
-                    self.textShowInfo.tag_configure(
-                        "chinese", font=("MiSans Normal", 12)
-                    )
-                    self.textShowInfo.tag_add(
-                        "chinese",
-                        f"{j+existing_lines}.{i}",
-                        f"{j+existing_lines}.{i+1}",
-                    )
-                else:
-                    self.textShowInfo.tag_configure("english", font=("Exo", 12))
-                    self.textShowInfo.tag_add(
-                        "english",
-                        f"{j+existing_lines}.{i}",
-                        f"{j+existing_lines}.{i+1}",
-                    )
-        self.item_specifer()
 
     def showCredits(self):
         creditsWindow = Tk()
@@ -266,29 +301,24 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         creditsLabel.pack(expand=True)
         creditsWindow.bind_all("<Button-1>", lambda _: creditsWindow.destroy())
 
-    def add_tag_to_text(self, specifer: str, tag_name: str):
-        start = 1.0
-        while True:
-            start = self.textShowInfo.search(specifer, start, END)
-            if not start:
-                break
-            end = f"{start}+{len(specifer)}c"
-            self.textShowInfo.tag_add(tag_name, start, end)
-            start = end
-
-    def item_specifer(self):
-        items = attributes.itemStack.returnAllItems()
-        for i in items:
-            if i not in self.textShowInfo.get(1.0, END):
-                continue
-            self.add_tag_to_text(i, f"item_{i}")
-
     def tagInitiation(self):
         items = attributes.itemStack.returnAllItems()
         for i in items:
-            self.textShowInfo.tag_configure(f"item_{i}", background="light grey")
+            self.textShowInfo.tag_configure(
+                f"item_{i}", font=("MiSans Normal", 12, ITALIC)
+            )
             self.textShowInfo.tag_bind(f"item_{i}", "<Enter>", self.enterItemTag(i))
             self.textShowInfo.tag_bind(f"item_{i}", "<Leave>", self.leaveItemTag)
+            # FIXME: 需要修复当enterItemTag在textShowRecipeStatus中被呼出的时候出现在左侧的bug
+            self.textShowRecipeStatus.tag_configure(
+                f"item_{i}", font=("MiSans Normal", 12, ITALIC)
+            )
+            self.textShowRecipeStatus.tag_bind(
+                f"item_{i}", "<Enter>", self.enterItemTag(i)
+            )
+            self.textShowRecipeStatus.tag_bind(
+                f"item_{i}", "<Leave>", self.leaveItemTag
+            )
 
     def enterItemTag(self, name: str):
         def callback(e):
@@ -300,18 +330,16 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
                 compound=TOP,
                 font=("MiSans Normal", 10),
             )
-            self.tooltip.place(x=e.x, y=e.y)
+            self.tooltip.place(x=e.x + 1, y=e.y + 1)
 
         return callback
 
     def leaveItemTag(self, _):
-        global image
         self.tooltip.place_forget()
 
-    # FIXME: 极度未完成, 体验极度垃圾, 亟需完善
     def darkMode(self):
         if self.ifDarkMode:
-            self.textShowInfo.configure(background="white", foreground="black")
+            self.style = Style(theme="flatly")
         else:
-            self.textShowInfo.configure(background="black", foreground="white")
+            self.style = Style(theme="darkly")
         self.ifDarkMode = not self.ifDarkMode
