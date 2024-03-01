@@ -5,7 +5,6 @@ from LoaderFromFile import Loader
 from LogOutput import logOutput
 
 
-# TODO: 制作一个能让工作台等Machine放下来的办法, 并且给Item加一个属性以区分Item和Machine
 class Loop:
     def __init__(self):
         self.loader = Loader()

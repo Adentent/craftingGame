@@ -1,20 +1,11 @@
+from ctypes import byref, c_int, sizeof, windll, wintypes
 from time import ctime, time
-from tkinter import (
-    END,
-    LEFT,
-    SOLID,
-    TOP,
-    Button,
-    Frame,
-    Label,
-    PhotoImage,
-    Text,
-    Tk,
-)
+from tkinter import END, LEFT, Event, Tk
 from tkinter.font import ITALIC
 
 from pyglet import font
-from ttkbootstrap import Style
+from ttkbootstrap import Button, Frame, Label, PhotoImage, Style, Text
+from ttkbootstrap.dialogs.dialogs import Messagebox
 
 from Communications import *
 from Const import Const
@@ -76,8 +67,6 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
             font.add_directory("assets/fonts")
             font.load("MiSans Medium")
             font.load("Exo")
-        self.mouseX: int = 0
-        self.mouseY: int = 0
         self.ifDarkMode = True
         self.looper = looper
 
@@ -132,13 +121,19 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
 
         self.clock = Label(self.root, text="")
         self.clock.pack()
-        self.tooltip = Label(
-            self.root,
-            text="Tooltip",
-            background="light grey",
-            bd=1,
-            relief=SOLID,
+        self.tooltip = Label(self.root)
+
+        self.textShowRecipeStatus.showInfo("工作台")
+
+        # 设置暗色调的标题栏！！
+        self.root.update()
+        DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+        hwnd = windll.user32.GetParent(self.root.winfo_id())
+        value = c_int(True)
+        windll.dwmapi.DwmSetWindowAttribute(
+            hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, byref(value), 4
         )
+        self.root.update()
 
     def buttonBind(self):
         self.root.bind("<KeyPress-q>", self.qDown)
@@ -147,7 +142,10 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         self.root.bind("<KeyRelease-w>", self.wRelease)
         self.root.bind("<Key-e>", self.showInventory)
         self.root.bind("<Key-h>", self.showTips)
+        self.root.bind("<Key-esc>")
         self.root.focus_set()
+
+        self.root.bind("<Motion>", self.tooltipMove)
 
     def showInventory(self, _=None):
         self.textShowInfo.delete(1.0, END)
@@ -166,9 +164,7 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
             for j in i.output:
                 self.textShowInfo.tag_configure(f"link_{i.name}", underline=True)
                 self.textShowInfo.tag_bind(
-                    f"link_{i.name}",
-                    "<Button-1>",
-                    self.showRecipe(i),
+                    f"link_{i.name}", "<Button-1>", self.showRecipe(i)
                 )
                 self.textShowInfo.showInfo(j.name, f"link_{i.name}")
         self.root.update()
@@ -227,17 +223,10 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
             self.textShowInfo.tag_bind(
                 "back", "<Button-1>", lambda _: self.showRecipes()
             )
-            self.textShowInfo.tag_configure(
-                "craft",
-                underline=True,
-            )
-            self.textShowInfo.tag_bind(
-                "craft",
-                "<Button-1>",
-                self.doRecipe(recipe),
-            )
+            self.textShowInfo.tag_configure("craft", underline=True)
+            self.textShowInfo.tag_bind("craft", "<Button-1>", self.doRecipe(recipe))
             self.textShowInfo.showInfo("合成", "craft")
-            self.textShowInfo.showInfo("<-返回", "back")
+            self.textShowInfo.showInfo("返回", "back")
 
         return callback
 
@@ -282,24 +271,7 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         self.root.after(100, self.DynWidgetsUpdates)
 
     def showCredits(self):
-        creditsWindow = Tk()
-        creditsWindow.overrideredirect(True)
-
-        width = 380
-        heigh = 300
-        screenwidth = creditsWindow.winfo_screenwidth()
-        screenheight = creditsWindow.winfo_screenheight()
-        creditsWindow.geometry(
-            "%dx%d+%d+%d"
-            % (width, heigh, (screenwidth - width) / 2, (screenheight - heigh) / 2)
-        )
-        creditsLabel = Label(
-            creditsWindow,
-            text="All By Adentent\n\n左键点击该窗口以离开",
-            font=("MiSans Normal", 12),
-        )
-        creditsLabel.pack(expand=True)
-        creditsWindow.bind_all("<Button-1>", lambda _: creditsWindow.destroy())
+        reditsWindow = Messagebox.show_info("All By Adentent")
 
     def tagInitiation(self):
         items = attributes.itemStack.returnAllItems()
@@ -309,7 +281,6 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
             )
             self.textShowInfo.tag_bind(f"item_{i}", "<Enter>", self.enterItemTag(i))
             self.textShowInfo.tag_bind(f"item_{i}", "<Leave>", self.leaveItemTag)
-            # FIXME: 需要修复当enterItemTag在textShowRecipeStatus中被呼出的时候出现在左侧的bug
             self.textShowRecipeStatus.tag_configure(
                 f"item_{i}", font=("MiSans Normal", 12, ITALIC)
             )
@@ -321,21 +292,27 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
             )
 
     def enterItemTag(self, name: str):
-        def callback(e):
+        def callback(e: Event):
             global image
-            image = PhotoImage(file=f"assets/resources/{name}.png")
-            self.tooltip.configure(
-                image=image,
-                text=name,
-                compound=TOP,
-                font=("MiSans Normal", 10),
+            image = PhotoImage(file=f"assets/resources/{name}.png").subsample(2)
+            self.tooltip.configure(image=image)
+            self.tooltip.place(
+                x=e.x_root - self.root.winfo_rootx() + 5,
+                y=e.y_root - self.root.winfo_rooty() + 5,
             )
-            self.tooltip.place(x=e.x + 1, y=e.y + 1)
 
         return callback
 
     def leaveItemTag(self, _):
         self.tooltip.place_forget()
+
+    def tooltipMove(self, e):
+        if not self.tooltip.winfo_ismapped():
+            return
+        self.tooltip.place(
+            x=e.x_root - self.root.winfo_rootx() + 5,
+            y=e.y_root - self.root.winfo_rooty() + 5,
+        )
 
     def darkMode(self):
         if self.ifDarkMode:

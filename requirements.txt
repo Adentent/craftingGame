@@ -1,3 +1,4 @@
 chardet==5.1.0
 pip==24.0
 pyglet==2.0.10
+ttkbootstrap==1.10.1
