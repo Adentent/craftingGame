@@ -1,8 +1,7 @@
-from ctypes import byref, c_int, sizeof, windll, wintypes
+from os import name as operatingSystemName
 from time import ctime, time
 from tkinter import END, LEFT, Event, Tk
 from tkinter.font import ITALIC
-
 from pyglet import font
 from ttkbootstrap import Button, Frame, Label, PhotoImage, Style, Text
 from ttkbootstrap.dialogs.dialogs import Messagebox
@@ -123,17 +122,21 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         self.clock.pack()
         self.tooltip = Label(self.root)
 
-        self.textShowRecipeStatus.showInfo("工作台")
+        self.setDarkerTitleBar(self.root)
 
-        # 设置暗色调的标题栏！！
-        self.root.update()
-        DWMWA_USE_IMMERSIVE_DARK_MODE = 20
-        hwnd = windll.user32.GetParent(self.root.winfo_id())
-        value = c_int(True)
-        windll.dwmapi.DwmSetWindowAttribute(
-            hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, byref(value), 4
-        )
-        self.root.update()
+    # 设置暗色调的标题栏！！
+    def setDarkerTitleBar(self, window):
+        if operatingSystemName == "nt":
+            from ctypes import byref, c_int, windll
+
+            window.update()
+            DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+            hwnd = windll.user32.GetParent(window.winfo_id())
+            value = c_int(True)
+            windll.dwmapi.DwmSetWindowAttribute(
+                hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, byref(value), 4
+            )
+            window.update()
 
     def buttonBind(self):
         self.root.bind("<KeyPress-q>", self.qDown)
@@ -271,7 +274,7 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         self.root.after(100, self.DynWidgetsUpdates)
 
     def showCredits(self):
-        reditsWindow = Messagebox.show_info("All By Adentent")
+        Messagebox.show_info("All By Adentent")
 
     def tagInitiation(self):
         items = attributes.itemStack.returnAllItems()

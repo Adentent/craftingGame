@@ -1,4 +1,5 @@
-from typing import Dict, List, Tuple, Union
+from typing import Deque, Dict, List, Tuple, Union
+from collections import deque
 
 
 class Item:
@@ -36,9 +37,9 @@ class Recipe:
 
 class ItemStack:
     def __init__(self):
-        self.stack: List[Item] = []
+        self.stack: Deque[Item] = deque()
 
-    def addItem(self, name: str, tag: str):
+    def addItem(self, name: str, tag: str) -> None:
         item = Item(name, len(self.stack) + 1, tag)
         self.stack.append(item)
 
@@ -48,16 +49,16 @@ class ItemStack:
                 return i
         return self.stack[0]
 
-    def findItems(self, names: list[str]):
-        res = []
+    def findItems(self, names: Deque[str]) -> Deque[Item]:
+        res: Deque = deque()
         for i in names:
             for j in self.stack:
                 if j.name == i:
                     res.append(j)
         return res
 
-    def returnAllItems(self) -> Tuple[str, ...]:
-        return tuple(i.name for i in self.stack)
+    def returnAllItems(self) -> Deque[str]:
+        return deque(i.name for i in self.stack)
 
     def logFormat(self):
         return ",".join([i.name + "(%d)" % i.number for i in self.stack])
@@ -66,7 +67,7 @@ class ItemStack:
 class RecipeStack:
     def __init__(self, itemStack: ItemStack) -> None:
         self.itemStack = itemStack
-        self.stack: List[Recipe] = []
+        self.stack: Deque[Recipe] = deque()
 
     def addRecipe(
         self,
@@ -85,21 +86,21 @@ class RecipeStack:
         )
         self.stack.append(recipe)
 
-    def addRecipes(self, stack: list):
+    def addRecipes(self, stack: Deque):
         for i in stack:
             self.addRecipe(i[0], i[1], i[2], i[3], i[4])
 
-    def returnOutputs(self) -> list[list[Item]]:
-        res = []
+    def returnOutputs(self) -> Deque[Deque[Item]]:
+        res = deque()
         for i in self.stack:
             res.append(i.output)
         return res
 
-    def returnRecipes(self) -> list[Recipe]:
+    def returnRecipes(self) -> Deque[Recipe]:
         return self.stack
 
     def logFormat(self):
-        res = []
+        res = deque()
         for i in self.stack:
             input_names = ", ".join(
                 [f"{number}个{inp.name}" for inp, number in i.input.items()]
