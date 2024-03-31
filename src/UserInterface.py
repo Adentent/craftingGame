@@ -5,7 +5,6 @@ from tkinter.font import ITALIC
 from pyglet import font
 from ttkbootstrap import Button, Frame, Label, PhotoImage, Style, Text
 from ttkbootstrap.dialogs.dialogs import Messagebox
-
 from Communications import *
 from Const import Const
 from LogOutput import logOutput
@@ -72,6 +71,7 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         self.style = Style(theme="darkly")
         self.root: Tk = self.style.master
         self.root.title(f"Craft Game | Version {Const.version}")
+        self.root.overrideredirect(True)
 
         self.generateWidgets()
         self.buttonBind()
@@ -145,6 +145,7 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         self.root.bind("<KeyRelease-w>", self.wRelease)
         self.root.bind("<Key-e>", self.showInventory)
         self.root.bind("<Key-h>", self.showTips)
+        self.root.bind("<Key-d>", self.showRecipes)
         self.root.bind("<Key-esc>")
         self.root.focus_set()
 
@@ -152,10 +153,10 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
 
     def showInventory(self, _=None):
         self.textShowInfo.delete(1.0, END)
-        self.textShowInfo.showInfo("背包: " + attributes.inventory.formatOutput())
+        self.textShowInfo.showInfo(f"背包: {attributes.inventory}")
         self.root.update()
 
-    def showRecipes(self):
+    def showRecipes(self, _=None):
         recipeStackRecipes = attributes.recipeStack.returnRecipes()
         self.textShowInfo.delete(1.0, END)
         for i in recipeStackRecipes:
@@ -236,11 +237,10 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
     def doRecipe(self, recipe: Recipe):
         self.textShowInfo.showInfo(f"需要{recipe.time / 1000}s来完成这个合成...")
 
-        def callback(_):
+        def showRecipeStatus(_) -> None:
             inventoryCpy = attributes.inventory
             for item, number in recipe.input.items():
                 if not inventoryCpy.loseItem(item, number):
-                    self.textShowInfo.delete(1.0, END)
                     if item in attributes.inventory.returnItems():
                         self.textShowRecipeStatus.showInfo(
                             f"合成失败! 缺失{number - attributes.inventory.returnItems()[item]}个{item.name}!",
@@ -249,13 +249,12 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
                         self.textShowRecipeStatus.showInfo(
                             f"合成失败! 缺失{number}个{item.name}!"
                         )
-                    self.textShowInfo.showInfo("<-返回", "back")
                     return
             self.textShowRecipeStatus.showInfo(
                 f"开始合成{', '.join([i.name for i in recipe.output.keys()])}"
             )
 
-            def callback2():
+            def startRecipeTimedTask() -> None:
                 for ipt in recipe.input:
                     attributes.inventory.loseItem(ipt, 1)
                 for opt in recipe.output:
@@ -264,9 +263,9 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
                     f"{', '.join([i.name for i in recipe.output.keys()])}合成成功!"
                 )
 
-            self.root.after(recipe.time, callback2)
+            self.root.after(recipe.time, startRecipeTimedTask)
 
-        return callback
+        return showRecipeStatus
 
     def DynWidgetsUpdates(self):
         self.clock["text"] = ctime()

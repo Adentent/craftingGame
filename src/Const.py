@@ -3,7 +3,7 @@ from os.path import dirname, join, realpath
 
 
 class Const:
-    version = "0.1"
+    version = "1.0.0"
     currentDir = dirname(realpath(__file__))
     itemsDir = join(currentDir, "items")
     itemsFiles = []

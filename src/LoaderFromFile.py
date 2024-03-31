@@ -1,14 +1,12 @@
 import json
+from collections import deque
+from typing import Deque
 
 from chardet import detect
-from pip import main as pipInstall
 
 from Communications import ItemStack, RecipeStack, attributes
 from Const import Const
 from LogOutput import logOutput
-
-# Currently not used
-# from numba import jit
 
 
 def getFileEncoding(filepath):
@@ -21,8 +19,8 @@ def getFileEncoding(filepath):
         return encoding
 
 
-def recipesFixer(originJsonScript: str):
-    res = []
+def recipesFixer(originJsonScript: str) -> Deque:
+    res = deque()
     for key, value in json.loads(originJsonScript).items():
         name = key
         ipt = value["input"]
@@ -59,7 +57,7 @@ class Loader:
                         continue
                     itemStack.addItem(item, tag)
         logOutput("读取物品完毕")
-        logOutput("所有物品输出如下：\n" + itemStack.logFormat())
+        logOutput(f"所有物品输出如下：\n{itemStack}")
 
     def recipesLoad(self):
         logOutput("读取配方")
@@ -71,7 +69,7 @@ class Loader:
                 recipes = recipesFixer(f.read())
                 recipeStack.addRecipes(recipes)
         logOutput("读取配方完毕")
-        logOutput("所有配方输出如下：\n" + recipeStack.logFormat())
+        logOutput(f"所有配方输出如下：\n{recipeStack}")
 
     def returnValue(self):
         return itemStack, recipeStack

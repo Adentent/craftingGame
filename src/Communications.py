@@ -1,4 +1,4 @@
-from typing import Deque, Dict, List, Tuple, Union
+from typing import Deque, Dict, Union
 from collections import deque
 
 
@@ -60,7 +60,7 @@ class ItemStack:
     def returnAllItems(self) -> Deque[str]:
         return deque(i.name for i in self.stack)
 
-    def logFormat(self):
+    def __str__(self):
         return ",".join([i.name + "(%d)" % i.number for i in self.stack])
 
 
@@ -99,7 +99,7 @@ class RecipeStack:
     def returnRecipes(self) -> Deque[Recipe]:
         return self.stack
 
-    def logFormat(self):
+    def __str__(self):
         res = deque()
         for i in self.stack:
             input_names = ", ".join(
@@ -145,7 +145,7 @@ class PlayerInventoryItemStack:
     def returnItems(self) -> Dict[Item, int]:
         return self.stack
 
-    def formatOutput(self) -> str:
+    def __str__(self) -> str:
         allZero = False
         for i in self.stack.items():
             if i != 0:

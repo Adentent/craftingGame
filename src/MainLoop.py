@@ -2,7 +2,6 @@ from random import choice
 
 from Communications import *
 from LoaderFromFile import Loader
-from LogOutput import logOutput
 
 
 class Loop:
