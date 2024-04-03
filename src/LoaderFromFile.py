@@ -4,9 +4,9 @@ from typing import Deque
 
 from chardet import detect
 
-from Communications import ItemStack, RecipeStack, attributes
-from Const import Const
-from LogOutput import logOutput
+from src.Communications import ItemStack, RecipeStack, attributes
+from src.Const import Const
+from src.LogOutput import logOutput
 
 
 def getFileEncoding(filepath):

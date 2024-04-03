@@ -1,7 +1,7 @@
 from random import choice
 
-from Communications import *
-from LoaderFromFile import Loader
+from src.Communications import *
+from src.LoaderFromFile import Loader
 
 
 class Loop:

@@ -2,13 +2,17 @@ from os import name as operatingSystemName
 from time import ctime, time
 from tkinter import END, LEFT, Event, Tk
 from tkinter.font import ITALIC
+
 from pyglet import font
 from ttkbootstrap import Button, Frame, Label, PhotoImage, Style, Text
 from ttkbootstrap.dialogs.dialogs import Messagebox
-from Communications import *
-from Const import Const
-from LogOutput import logOutput
-from MainLoop import Loop
+
+from src.Const import Const
+from src.LogOutput import logOutput
+from src.MainLoop import Loop
+from src.Communications import *
+
+TIP: str = "Tips:\n按'Q'来获取一些橡树木头...\n按'W'来挖矿...\n按'H'以显示此Tips"
 
 
 class MyText(Text):
@@ -71,7 +75,6 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         self.style = Style(theme="darkly")
         self.root: Tk = self.style.master
         self.root.title(f"Craft Game | Version {Const.version}")
-        self.root.overrideredirect(True)
 
         self.generateWidgets()
         self.buttonBind()
@@ -85,9 +88,7 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
     def generateWidgets(self):
         self.textShowInfo = MyText(self.root, cursor="arrow", height=8, width=25)
         self.textShowInfo.bind("<Button-1>", lambda _: "break")
-        self.textShowInfo.showInfo(
-            "Tips:\n按'Q'来获取一些橡树木头...\n按'W'来挖矿...\n按'H'以显示此Tips",
-        )
+        self.textShowInfo.showInfo(TIP)
         self.textShowRecipeStatus = MyText(
             self.root, cursor="arrow", height=8, width=25
         )
@@ -146,7 +147,8 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
         self.root.bind("<Key-e>", self.showInventory)
         self.root.bind("<Key-h>", self.showTips)
         self.root.bind("<Key-d>", self.showRecipes)
-        self.root.bind("<Key-esc>")
+        self.root.bind("<Key-Escape>", "exit")
+        self.root.bind("<Key-Tab>", "break")
         self.root.focus_set()
 
         self.root.bind("<Motion>", self.tooltipMove)
@@ -175,7 +177,7 @@ class UserInterfaceGenerator:  # It is not a interface, but it is a user interfa
 
     def showTips(self, _=None):
         self.textShowInfo.delete(1.0, END)
-        self.textShowInfo.showInfo("Tips:\n按'Q'来获取一些橡树木头...\n按'W'来挖矿...")
+        self.textShowInfo.showInfo(TIP)
         self.root.update()
 
     def qDown(self, _):
